@@ -1,0 +1,24 @@
+# === Core Scientific Libraries ===
+numpy
+scipy
+pandas
+scikit-learn
+
+# === EEG Signal Processing ===
+mne
+
+# === Vector Database (FAISS) ===
+faiss-cpu
+# If you have a CUDA-enabled GPU, replace with:
+# faiss-gpu
+
+# === Visualization ===
+matplotlib
+seaborn
+
+# === Utility Packages ===
+joblib
+pickle-mixin
+
+# === Optional (for better 3D visualization / interactive UI) ===
+plotly

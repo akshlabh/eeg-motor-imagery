@@ -1,0 +1,36 @@
+# Virtual envs
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS/editor
+.DS_Store
+.vscode/
+
+# Raw EEG data + big artifacts
+src/data/
+data/
+*.edf
+
+# Models / DB / indices
+models/
+*.h5
+*.keras
+*.joblib
+*.pkl
+*.faiss
+
+# Numpy / artifacts
+src/artifacts/
+src/report_outputs/*.npy
+src/**/*.npy
+src/**/*.npz
+
+# Archives
+*.zip
+
+# Jupyter
+.ipynb_checkpoints/
