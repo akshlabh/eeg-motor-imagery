@@ -260,6 +260,3 @@ For questions or improvements:
 **Akshay** – *akshlabh (GitHub)*
 
 
-
-Just tell me **“add badges”** or **“make a GitHub Docs site”**.
-```
