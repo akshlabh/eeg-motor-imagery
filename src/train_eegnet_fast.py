@@ -6,7 +6,7 @@ import numpy as np
 import random
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, regularizers
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from collections import Counter
 
@@ -27,43 +27,71 @@ os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 # ----------------- EEGNet model -----------------
 def EEGNet_simple(nb_channels, nb_samples, drop_prob=0.5, kern_len=64):
     """
-    Compact EEGNet-style CNN for motor imagery (binary).
+    Tuned compact EEGNet-style CNN for motor imagery (binary).
     Input shape: (channels, samples, 1)
+    - More filters
+    - L2 regularization
+    - Spatial dropout
+    This is a drop-in replacement for the previous version.
     """
     inputs = keras.Input(shape=(nb_channels, nb_samples, 1))
 
-    # Temporal conv
-    x = layers.Conv2D(16, (1, kern_len), padding='same', use_bias=False)(inputs)
+    # --- Temporal convolution ---
+    x = layers.Conv2D(
+        filters=32,                             # was 16
+        kernel_size=(1, kern_len),
+        padding="same",
+        use_bias=False,
+        kernel_regularizer=regularizers.l2(1e-3),
+    )(inputs)
     x = layers.BatchNormalization()(x)
 
-    # Depthwise (spatial) conv
-    x = layers.DepthwiseConv2D((nb_channels, 1), depth_multiplier=2,
-                               use_bias=False)(x)
+    # --- Depthwise (spatial) convolution across channels ---
+    x = layers.DepthwiseConv2D(
+        kernel_size=(nb_channels, 1),
+        depth_multiplier=4,                    # was 2
+        use_bias=False,
+        depthwise_regularizer=regularizers.l2(1e-3),
+    )(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Activation('elu')(x)
-    x = layers.AveragePooling2D((1, 4))(x)
-    x = layers.Dropout(drop_prob)(x)
+    x = layers.Activation("elu")(x)
+    x = layers.SpatialDropout2D(0.25)(x)       # more robust than plain Dropout
+    x = layers.AveragePooling2D(pool_size=(1, 4))(x)
 
-    # Separable conv
-    x = layers.SeparableConv2D(16, (1, 16), padding='same', use_bias=False)(x)
+    # --- Separable convolution (temporal refinement) ---
+    x = layers.SeparableConv2D(
+        filters=64,                            # was 16
+        kernel_size=(1, 16),
+        padding="same",
+        use_bias=False,
+        depthwise_regularizer=regularizers.l2(1e-3),
+        pointwise_regularizer=regularizers.l2(1e-3),
+    )(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Activation('elu')(x)
-    x = layers.AveragePooling2D((1, 8))(x)
-    x = layers.Dropout(drop_prob)(x)
+    x = layers.Activation("elu")(x)
+    x = layers.SpatialDropout2D(0.25)(x)
+    x = layers.AveragePooling2D(pool_size=(1, 8))(x)
 
+    # --- Dense head ---
     x = layers.Flatten()(x)
-    x = layers.Dense(64, activation='elu')(x)
-    x = layers.BatchNormalization()(x)   # small stability boost vs old script
-    x = layers.Dropout(0.5)(x)
-    outputs = layers.Dense(1, activation='sigmoid')(x)
+    x = layers.Dense(
+        128,                                   # was 64
+        activation="elu",
+        kernel_regularizer=regularizers.l2(1e-3),
+    )(x)
+    x = layers.Dropout(drop_prob)(x)
+    outputs = layers.Dense(1, activation="sigmoid")(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs)
+
+    # Slightly smaller LR for the larger / regularized net
     model.compile(
-        optimizer=keras.optimizers.Adam(1e-3),
-        loss='binary_crossentropy',
-        metrics=['accuracy'],
+        optimizer=keras.optimizers.Adam(learning_rate=5e-4),
+        loss="binary_crossentropy",
+        metrics=["accuracy"],
     )
     return model
+
 
 # ----------------- Data loading + preprocessing -----------------
 def load_and_preprocess():
@@ -183,4 +211,4 @@ def main(test_size=0.2, batch_size=64, max_epochs=80, save_history=True):
     print(f"\n💾 Saved best EEGNet model to: {ckpt_path}")
 
 if __name__ == "__main__":
-    main()
+    main(batch_size=128, max_epochs=74)
