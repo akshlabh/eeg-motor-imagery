@@ -19,7 +19,7 @@ ARTIFACTS_DIR = os.path.join(SCRIPT_DIR, "artifacts")
 MODELS_DIR = os.path.join(SCRIPT_DIR, "..", "models")
 
 # 🔴 UPDATE THIS TIMESTAMP to your run
-TIMESTAMP = "20251124_112120"
+TIMESTAMP = "20251125_193714"
 
 MODEL_PATH = os.path.join(MODELS_DIR, f"eegnet_fast_global_{TIMESTAMP}.h5")
 HISTORY_PATH = os.path.join(ARTIFACTS_DIR, f"history_eegnet_fast_{TIMESTAMP}.json")
